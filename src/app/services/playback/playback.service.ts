@@ -41,6 +41,7 @@ export class PlaybackService implements PlaybackServiceBase {
     private _canResume: boolean = true;
     private _volumeBeforeMute: number = 0;
     private subscription: Subscription = new Subscription();
+    private _nextTrack: TrackModel | undefined;
 
     public constructor(
         private trackService: TrackServiceBase,
@@ -239,6 +240,8 @@ export class PlaybackService implements PlaybackServiceBase {
             this.settings.playbackControlsLoop = 0;
         }
 
+        this.setNextTrack();
+
         this.logger.info(`Toggled loopMode from ${oldLoopMode} to ${this._loopMode}`, 'PlaybackService', 'toggleLoopMode');
     }
 
@@ -252,6 +255,8 @@ export class PlaybackService implements PlaybackServiceBase {
             this.queue.unShuffle();
             this.settings.playbackControlsShuffle = 0;
         }
+
+        this.setNextTrack();
 
         this.logger.info(`Toggled isShuffled from ${!this._isShuffled} to ${this._isShuffled}`, 'PlaybackService', 'toggleIsShuffled');
     }
@@ -382,6 +387,8 @@ export class PlaybackService implements PlaybackServiceBase {
         this._canResume = false;
         this.progressUpdater.startUpdatingProgress();
         this.playbackStarted.next(new PlaybackStarted(trackToPlay, isPlayingPreviousTrack));
+        this.preloadNextTrack();
+        this.setNextTrack();
 
         this.logger.info(`Playing '${this.currentTrack.path}'`, 'PlaybackService', 'play');
     }
@@ -401,6 +408,11 @@ export class PlaybackService implements PlaybackServiceBase {
         this.playbackStopped.next();
     }
 
+    private setNextTrack(): void {
+        const allowWrapAround: boolean = this.loopMode === LoopMode.All;
+        this._nextTrack = this.queue.getNextTrack(this.currentTrack, allowWrapAround);
+    }
+
     private playbackFinishedHandler(): void {
         if (this.currentTrack != undefined) {
             this.logger.info(`Track finished: '${this.currentTrack.path}'`, 'PlaybackService', 'playbackFinishedHandler');
@@ -416,11 +428,11 @@ export class PlaybackService implements PlaybackServiceBase {
             return;
         }
 
-        const allowWrapAround: boolean = this.loopMode === LoopMode.All;
-        const trackToPlay: TrackModel | undefined = this.queue.getNextTrack(this.currentTrack, allowWrapAround);
+        // const allowWrapAround: boolean = this.loopMode === LoopMode.All;
+        // const trackToPlay: TrackModel | undefined = this.queue.getNextTrack(this.currentTrack, allowWrapAround);
 
-        if (trackToPlay != undefined) {
-            this.play(trackToPlay, false);
+        if (this._nextTrack) {
+            this.play(this._nextTrack, false);
 
             return;
         }
@@ -528,6 +540,15 @@ export class PlaybackService implements PlaybackServiceBase {
             this.pause();
             this.skipToSeconds(info.progressSeconds);
             this.progressUpdater.startUpdatingProgress();
+        }
+    }
+
+    private preloadNextTrack(): void {
+        const allowWrapAround: boolean = this.loopMode === LoopMode.All;
+        const nextTrack: TrackModel | undefined = this.queue.getNextTrack(this.currentTrack, allowWrapAround);
+
+        if (nextTrack != undefined) {
+            this.audioPlayer.preloadNextTrack(nextTrack.path);
         }
     }
 }

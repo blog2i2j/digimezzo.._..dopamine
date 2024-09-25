@@ -9,6 +9,9 @@ import { AudioPlayerBase } from './audio-player.base';
 @Injectable()
 export class AudioPlayer implements AudioPlayerBase {
     private _audio: HTMLAudioElement;
+    private _nextAudio: HTMLAudioElement | undefined = undefined;
+    private _nextAudioPath: string = '';
+    private _threshold: number = 100; // milliseconds before the end
 
     public constructor(
         private mathExtensions: MathExtensions,
@@ -27,12 +30,10 @@ export class AudioPlayer implements AudioPlayerBase {
             this.logger.error(e, 'Could not perform setSinkId()', 'AudioPlayer', 'constructor');
         }
 
-        this.audio.defaultPlaybackRate = 1;
-        this.audio.playbackRate = 1;
-        this.audio.volume = 1;
-        this.audio.muted = false;
-
-        this.audio.onended = () => this.playbackFinished.next();
+        this._audio.defaultPlaybackRate = 1;
+        this._audio.playbackRate = 1;
+        this._audio.volume = 1;
+        this._audio.muted = false;
     }
 
     private playbackFinished: Subject<void> = new Subject();
@@ -43,56 +44,71 @@ export class AudioPlayer implements AudioPlayerBase {
     }
 
     public get progressSeconds(): number {
-        if (isNaN(this.audio.currentTime)) {
+        if (isNaN(this._audio.currentTime)) {
             return 0;
         }
 
-        return this.audio.currentTime;
+        return this._audio.currentTime;
     }
 
     public get totalSeconds(): number {
-        if (isNaN(this.audio.duration)) {
+        if (isNaN(this._audio.duration)) {
             return 0;
         }
 
-        return this.audio.duration;
+        return this._audio.duration;
     }
 
     public play(audioFilePath: string): void {
-        const playableAudioFilePath: string = this.replaceUnplayableCharacters(audioFilePath);
-        this.audio.src = 'file:///' + playableAudioFilePath;
-        PromiseUtils.noAwait(this.audio.play());
+        if (this._nextAudio !== undefined && this._nextAudioPath === audioFilePath) {
+            this._audio = this._nextAudio;
+            this._nextAudio = undefined;
+
+            const originalVolume = this._audio.volume;
+            this._audio.volume = 0;
+            PromiseUtils.noAwait(this._audio.play());
+            // setTimeout(() => {
+            this._audio.volume = originalVolume;
+            // }, 200); // Adjust the delay as needed
+        } else {
+            const playableAudioFilePath: string = this.replaceUnplayableCharacters(audioFilePath);
+            this._audio.src = 'file:///' + playableAudioFilePath;
+            PromiseUtils.noAwait(this._audio.play());
+        }
+
+        // this._audio.onended = () => this.playbackFinished.next();
+        this._audio.ontimeupdate = () => this.checkNearEnd();
     }
 
     public stop(): void {
-        this.audio.currentTime = 0;
-        this.audio.pause();
+        this._audio.currentTime = 0;
+        this._audio.pause();
     }
 
     public pause(): void {
-        this.audio.pause();
+        this._audio.pause();
     }
 
     public resume(): void {
-        PromiseUtils.noAwait(this.audio.play());
+        PromiseUtils.noAwait(this._audio.play());
     }
 
     public setVolume(linearVolume: number): void {
         // log(0) is undefined. So we provide a minimum of 0.01.
         const logarithmicVolume: number = linearVolume > 0 ? this.mathExtensions.linearToLogarithmic(linearVolume, 0.01, 1) : 0;
-        this.audio.volume = logarithmicVolume;
+        this._audio.volume = logarithmicVolume;
     }
 
     public mute(): void {
-        this.audio.muted = true;
+        this._audio.muted = true;
     }
 
     public unMute(): void {
-        this.audio.muted = false;
+        this._audio.muted = false;
     }
 
     public skipToSeconds(seconds: number): void {
-        this.audio.currentTime = seconds;
+        this._audio.currentTime = seconds;
     }
 
     private replaceUnplayableCharacters(audioFilePath: string): string {
@@ -100,5 +116,19 @@ export class AudioPlayer implements AudioPlayerBase {
         let playableAudioFilePath: string = StringUtils.replaceAll(audioFilePath, '#', '%23');
         playableAudioFilePath = StringUtils.replaceAll(playableAudioFilePath, '?', '%3F');
         return playableAudioFilePath;
+    }
+
+    public preloadNextTrack(audioFilePath: string): void {
+        this._nextAudioPath = audioFilePath;
+        const playableAudioFilePath: string = this.replaceUnplayableCharacters(audioFilePath);
+        this._nextAudio = new Audio('file:///' + playableAudioFilePath);
+        this._nextAudio.volume = this._audio.volume;
+        this._nextAudio.muted = this._audio.muted;
+    }
+
+    private checkNearEnd(): void {
+        if (this._audio.duration - this._audio.currentTime <= this._threshold / 1000) {
+            this.playbackFinished.next();
+        }
     }
 }
