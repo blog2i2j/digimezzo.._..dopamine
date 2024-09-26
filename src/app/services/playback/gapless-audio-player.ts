@@ -5,7 +5,7 @@ import { PromiseUtils } from '../../common/utils/promise-utils';
 import { StringUtils } from '../../common/utils/string-utils';
 import { IAudioPlayer } from './i-audio-player';
 
-export class AudioPlayer implements IAudioPlayer {
+export class GaplessAudioPlayer implements IAudioPlayer {
     private _audio: HTMLAudioElement;
 
     public constructor(
@@ -57,7 +57,7 @@ export class AudioPlayer implements IAudioPlayer {
     }
 
     public get supportsGaplessPlayback(): boolean {
-        return false;
+        return true;
     }
 
     public play(audioFilePath: string): void {

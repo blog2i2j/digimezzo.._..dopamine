@@ -12,17 +12,18 @@ import { TrackModels } from '../track/track-models';
 import { LoopMode } from './loop-mode';
 import { PlaybackProgress } from './playback-progress';
 import { PlaybackStarted } from './playback-started';
-import { ProgressUpdater } from './progress-updater';
 import { Queue } from './queue';
 import { PlaybackServiceBase } from './playback.service.base';
 import { TrackServiceBase } from '../track/track.service.base';
 import { PlaylistServiceBase } from '../playlist/playlist.service.base';
-import { AudioPlayerBase } from './audio-player.base';
 import { SettingsBase } from '../../common/settings/settings.base';
 import { NotificationServiceBase } from '../notification/notification.service.base';
 import { TrackSorter } from '../../common/sorting/track-sorter';
 import { QueuePersister } from './queue-persister';
 import { QueueRestoreInfo } from './queue-restore-info';
+import { AudioPlayerFactory } from './audio-player.factory';
+import { IAudioPlayer } from './i-audio-player';
+import { takeUntil } from 'rxjs/operators';
 
 @Injectable()
 export class PlaybackService implements PlaybackServiceBase {
@@ -40,23 +41,27 @@ export class PlaybackService implements PlaybackServiceBase {
     private _canPause: boolean = false;
     private _canResume: boolean = true;
     private _volumeBeforeMute: number = 0;
-    private subscription: Subscription = new Subscription();
+    private _audioPlayer: IAudioPlayer;
+    private reportProgressInterval: number = 0;
+    private shouldReportProgress: boolean = false;
+    private destroyAudioPlayerSubscriptions$: Subject<void> = new Subject<void>();
+    private _enableGaplessPlayback: boolean = false;
 
     public constructor(
         private trackService: TrackServiceBase,
         private playlistService: PlaylistServiceBase,
         private notificationService: NotificationServiceBase,
         private queuePersister: QueuePersister,
-        private _audioPlayer: AudioPlayerBase,
+        private audioPlayerFactory: AudioPlayerFactory,
         private trackSorter: TrackSorter,
         private queue: Queue,
-        private progressUpdater: ProgressUpdater,
         private mathExtensions: MathExtensions,
         private settings: SettingsBase,
         private logger: Logger,
     ) {
-        this.initializeSubscriptions();
-        this.applyVolumeFromSettings();
+        this._volume = this.settings.volume;
+        this._enableGaplessPlayback = this.settings.enableGaplessPlayback;
+        this.initializeAudioPlayer();
     }
 
     public get playbackQueue(): TrackModels {
@@ -76,7 +81,7 @@ export class PlaybackService implements PlaybackServiceBase {
         return this.queue.tracks != undefined && this.queue.tracks.length > 0;
     }
 
-    public get audioPlayer(): AudioPlayerBase {
+    public get audioPlayer(): IAudioPlayer {
         return this._audioPlayer;
     }
 
@@ -264,10 +269,10 @@ export class PlaybackService implements PlaybackServiceBase {
     }
 
     public pause(): void {
-        this.audioPlayer.pause();
+        this._audioPlayer.pause();
         this._canPause = false;
         this._canResume = true;
-        this.progressUpdater.pauseUpdatingProgress();
+        this.pauseUpdatingProgress();
         this.playbackPaused.next();
 
         if (this.currentTrack != undefined) {
@@ -287,11 +292,11 @@ export class PlaybackService implements PlaybackServiceBase {
             return;
         }
 
-        this.audioPlayer.resume();
+        this._audioPlayer.resume();
 
         this._canPause = true;
         this._canResume = false;
-        this.progressUpdater.startUpdatingProgress();
+        this.startUpdatingProgress();
         this.playbackResumed.next();
 
         if (this.currentTrack != undefined) {
@@ -302,7 +307,7 @@ export class PlaybackService implements PlaybackServiceBase {
     public playPrevious(): void {
         let trackToPlay: TrackModel | undefined;
 
-        if (this.currentTrack != undefined && this.audioPlayer.progressSeconds > 3) {
+        if (this.currentTrack != undefined && this._audioPlayer.progressSeconds > 3) {
             trackToPlay = this.currentTrack;
         } else {
             const allowWrapAround: boolean = this.loopMode === LoopMode.All;
@@ -334,15 +339,15 @@ export class PlaybackService implements PlaybackServiceBase {
     }
 
     public skipByFractionOfTotalSeconds(fractionOfTotalSeconds: number): void {
-        const seconds: number = fractionOfTotalSeconds * this.audioPlayer.totalSeconds;
-        this.audioPlayer.skipToSeconds(seconds);
-        this._progress = this.progressUpdater.getCurrentProgress();
+        const seconds: number = fractionOfTotalSeconds * this._audioPlayer.totalSeconds;
+        this._audioPlayer.skipToSeconds(seconds);
+        this._progress = this.getCurrentProgress();
         this.playbackSkipped.next();
     }
 
     private skipToSeconds(seconds: number): void {
-        this.audioPlayer.skipToSeconds(seconds);
-        this._progress = this.progressUpdater.getCurrentProgress();
+        this._audioPlayer.skipToSeconds(seconds);
+        this._progress = this.getCurrentProgress();
         this.playbackSkipped.next();
     }
 
@@ -374,24 +379,24 @@ export class PlaybackService implements PlaybackServiceBase {
     }
 
     private play(trackToPlay: TrackModel, isPlayingPreviousTrack: boolean): void {
-        this.audioPlayer.stop();
-        this.audioPlayer.play(trackToPlay.path);
+        this._audioPlayer.stop();
+        this._audioPlayer.play(trackToPlay.path);
         this.currentTrack = trackToPlay;
         this._isPlaying = true;
         this._canPause = true;
         this._canResume = false;
-        this.progressUpdater.startUpdatingProgress();
+        this.startUpdatingProgress();
         this.playbackStarted.next(new PlaybackStarted(trackToPlay, isPlayingPreviousTrack));
 
         this.logger.info(`Playing '${this.currentTrack.path}'`, 'PlaybackService', 'play');
     }
 
     private stop(): void {
-        this.audioPlayer.stop();
+        this._audioPlayer.stop();
         this._isPlaying = false;
         this._canPause = false;
         this._canResume = true;
-        this.progressUpdater.stopUpdatingProgress();
+        this.stopUpdatingProgress();
 
         if (this.currentTrack != undefined) {
             this.logger.info(`Stopping '${this.currentTrack.path}'`, 'PlaybackService', 'stop');
@@ -407,6 +412,8 @@ export class PlaybackService implements PlaybackServiceBase {
         }
 
         this.increasePlayCountAndDateLastPlayedForCurrentTrack();
+
+        this.checkIfGaplessPlaybackChanged();
 
         if (this.loopMode === LoopMode.One) {
             if (this.currentTrack != undefined) {
@@ -464,31 +471,41 @@ export class PlaybackService implements PlaybackServiceBase {
         this.trackService.saveSkipCount(this.currentTrack);
     }
 
-    private initializeSubscriptions(): void {
-        this.subscription.add(
-            this.audioPlayer.playbackFinished$.subscribe(() => {
-                this.playbackFinishedHandler();
-            }),
-        );
-
-        this.subscription.add(
-            this.progressUpdater.progressChanged$.subscribe((playbackProgress: PlaybackProgress) => {
-                this._progress = playbackProgress;
-                this.progressChanged.next(playbackProgress);
-            }),
-        );
+    private checkIfGaplessPlaybackChanged(): void {
+        if (this._enableGaplessPlayback !== this.settings.enableGaplessPlayback) {
+            this.logger.info(
+                `Gapless playback changed from ${this._enableGaplessPlayback} to ${this.settings.enableGaplessPlayback}`,
+                'PlaybackService',
+                'initializeAudioPlayer',
+            );
+            this._enableGaplessPlayback = this.settings.enableGaplessPlayback;
+            this.initializeAudioPlayer();
+        }
     }
 
-    private applyVolumeFromSettings(): void {
-        this._volume = this.settings.volume;
-        this.audioPlayer.setVolume(this._volume);
+    private initializeAudioPlayer(): void {
+        this.destroyAudioPlayerSubscriptions$.next();
+        this.destroyAudioPlayerSubscriptions$.complete();
+        this.destroyAudioPlayerSubscriptions$ = new Subject<void>();
+
+        this._audioPlayer = this.audioPlayerFactory.create();
+        this.logger.info(
+            `Created new audio player. Gapless playback: ${this._audioPlayer.supportsGaplessPlayback}`,
+            'PlaybackService',
+            'initializeAudioPlayer',
+        );
+        this._audioPlayer.setVolume(this._volume);
+
+        this._audioPlayer.playbackFinished$.pipe(takeUntil(this.destroyAudioPlayerSubscriptions$)).subscribe(() => {
+            this.playbackFinishedHandler();
+        });
     }
 
     private applyVolume(volume: number): void {
         const volumeToSet: number = this.mathExtensions.clamp(volume, 0, 1);
         this._volume = volumeToSet;
         this.settings.volume = volumeToSet;
-        this.audioPlayer.setVolume(volumeToSet);
+        this._audioPlayer.setVolume(volumeToSet);
     }
 
     private async notifyOfTracksAddedToPlaybackQueueAsync(numberOfAddedTracks: number): Promise<void> {
@@ -527,7 +544,39 @@ export class PlaybackService implements PlaybackServiceBase {
             this.play(info.playingTrack, false);
             this.pause();
             this.skipToSeconds(info.progressSeconds);
-            this.progressUpdater.startUpdatingProgress();
+            this.startUpdatingProgress();
+        }
+    }
+
+    public startUpdatingProgress(): void {
+        this.reportProgress();
+        this.shouldReportProgress = true;
+
+        if (this.reportProgressInterval === 0) {
+            this.reportProgressInterval = window.setInterval(() => {
+                this.reportProgress();
+            }, 500);
+        }
+    }
+
+    public stopUpdatingProgress(): void {
+        this.pauseUpdatingProgress();
+        this.progressChanged.next(new PlaybackProgress(0, 0));
+    }
+
+    public pauseUpdatingProgress(): void {
+        this.shouldReportProgress = false;
+    }
+
+    public getCurrentProgress(): PlaybackProgress {
+        return new PlaybackProgress(this._audioPlayer.progressSeconds, this._audioPlayer.totalSeconds);
+    }
+
+    private reportProgress(): void {
+        if (this.shouldReportProgress) {
+            const currentProgress: PlaybackProgress = this.getCurrentProgress();
+            this._progress = currentProgress;
+            this.progressChanged.next(currentProgress);
         }
     }
 }
