@@ -379,7 +379,7 @@ export class PlaybackService implements PlaybackServiceBase {
     }
 
     private play(trackToPlay: TrackModel, isPlayingPreviousTrack: boolean): void {
-        this.audioPlayer.stop();
+        //this.audioPlayer.stop();
         this.audioPlayer.play(trackToPlay.path);
         this.currentTrack = trackToPlay;
         this._isPlaying = true;

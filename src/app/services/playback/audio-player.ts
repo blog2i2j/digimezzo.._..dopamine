@@ -11,7 +11,7 @@ export class AudioPlayer implements AudioPlayerBase {
     private _audio: HTMLAudioElement;
     private _nextAudio: HTMLAudioElement | undefined = undefined;
     private _nextAudioPath: string = '';
-    private _threshold: number = 100; // milliseconds before the end
+    private _threshold: number = 200; // milliseconds before the end
 
     public constructor(
         private mathExtensions: MathExtensions,
@@ -61,22 +61,21 @@ export class AudioPlayer implements AudioPlayerBase {
 
     public play(audioFilePath: string): void {
         if (this._nextAudio !== undefined && this._nextAudioPath === audioFilePath) {
+            const previousAudio: HTMLAudioElement = this._audio;
             this._audio = this._nextAudio;
             this._nextAudio = undefined;
 
-            const originalVolume = this._audio.volume;
-            this._audio.volume = 0;
             PromiseUtils.noAwait(this._audio.play());
-            // setTimeout(() => {
-            this._audio.volume = originalVolume;
-            // }, 200); // Adjust the delay as needed
+            setTimeout(() => {
+                previousAudio.pause();
+            }, this._threshold);
         } else {
+            this._audio.pause();
             const playableAudioFilePath: string = this.replaceUnplayableCharacters(audioFilePath);
             this._audio.src = 'file:///' + playableAudioFilePath;
             PromiseUtils.noAwait(this._audio.play());
         }
 
-        // this._audio.onended = () => this.playbackFinished.next();
         this._audio.ontimeupdate = () => this.checkNearEnd();
     }
 
