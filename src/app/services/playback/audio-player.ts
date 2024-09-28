@@ -59,16 +59,35 @@ export class AudioPlayer implements AudioPlayerBase {
         return this._audio.duration;
     }
 
+    private crossFade(previousAudio: HTMLAudioElement, newAudio: HTMLAudioElement, duration: number): void {
+        const volumeToRestore: number = previousAudio.volume;
+        const interval = duration / 10; // Interval in milliseconds
+        const steps = duration / interval;
+        let currentStep = 0;
+
+        newAudio.volume = 0;
+        newAudio.play();
+
+        const fadeInterval = setInterval(() => {
+            currentStep++;
+            previousAudio.volume = Math.max(0, volumeToRestore * Math.pow(0.1, currentStep / steps));
+            newAudio.volume = Math.min(volumeToRestore, volumeToRestore * (1 - Math.pow(0.1, currentStep / steps)));
+
+            if (currentStep >= steps) {
+                clearInterval(fadeInterval);
+                previousAudio.pause();
+                previousAudio.volume = volumeToRestore; // Reset volume for future use
+            }
+        }, interval);
+    }
+
     public play(audioFilePath: string): void {
         if (this._nextAudio !== undefined && this._nextAudioPath === audioFilePath) {
             const previousAudio: HTMLAudioElement = this._audio;
             this._audio = this._nextAudio;
             this._nextAudio = undefined;
 
-            PromiseUtils.noAwait(this._audio.play());
-            setTimeout(() => {
-                previousAudio.pause();
-            }, this._threshold);
+            this.crossFade(previousAudio, this._audio, this._threshold);
         } else {
             this._audio.pause();
             const playableAudioFilePath: string = this.replaceUnplayableCharacters(audioFilePath);
@@ -121,6 +140,7 @@ export class AudioPlayer implements AudioPlayerBase {
         this._nextAudioPath = audioFilePath;
         const playableAudioFilePath: string = this.replaceUnplayableCharacters(audioFilePath);
         this._nextAudio = new Audio('file:///' + playableAudioFilePath);
+        this._nextAudio.preload = 'auto';
         this._nextAudio.volume = this._audio.volume;
         this._nextAudio.muted = this._audio.muted;
     }
