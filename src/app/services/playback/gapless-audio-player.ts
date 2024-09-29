@@ -29,11 +29,11 @@ export class GaplessAudioPlayer implements IAudioPlayer {
     }
 
     public get totalSeconds(): number {
-        if (isNaN(this._player.get)) {
+        if (isNaN(this._player.currentLength())) {
             return 0;
         }
 
-        return this.audio.duration;
+        return this._player.currentLength() / 1000;
     }
 
     public get supportsGaplessPlayback(): boolean {
@@ -43,7 +43,6 @@ export class GaplessAudioPlayer implements IAudioPlayer {
     public play(audioFilePath: string): void {
         const playableAudioFilePath: string = this.replaceUnplayableCharacters(audioFilePath);
         this._player.addTrack(playableAudioFilePath);
-        this.audio.src = 'file:///' + playableAudioFilePath;
         this._player.play();
     }
 
@@ -62,8 +61,7 @@ export class GaplessAudioPlayer implements IAudioPlayer {
     public setVolume(linearVolume: number): void {
         // log(0) is undefined. So we provide a minimum of 0.01.
         const logarithmicVolume: number = linearVolume > 0 ? this.mathExtensions.linearToLogarithmic(linearVolume, 0.01, 1) : 0;
-        this.audio.volume = logarithmicVolume;
-        this._player.volume = volume;
+        this._player.volume = logarithmicVolume;
     }
 
     public mute(): void {
