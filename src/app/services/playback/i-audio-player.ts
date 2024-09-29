@@ -10,8 +10,9 @@ export interface IAudioPlayer {
     stop(): void;
     pause(): void;
     resume(): void;
-    setVolume(volume: number): void;
+    setVolume(linearVolume: number): void;
     mute(): void;
     unMute(): void;
     skipToSeconds(seconds: number): void;
+    preloadTrack(audioFilePath: string): void;
 }

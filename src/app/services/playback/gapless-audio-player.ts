@@ -1,55 +1,35 @@
-import { Observable, Subject } from 'rxjs';
-import { Logger } from '../../common/logger';
-import { MathExtensions } from '../../common/math-extensions';
-import { PromiseUtils } from '../../common/utils/promise-utils';
-import { StringUtils } from '../../common/utils/string-utils';
+import { Observable } from 'rxjs';
 import { IAudioPlayer } from './i-audio-player';
+import { Gapless5 } from '@regosen/gapless-5';
+import { StringUtils } from '../../common/utils/string-utils';
+import { MathExtensions } from '../../common/math-extensions';
+import { Logger } from '../../common/logger';
 
 export class GaplessAudioPlayer implements IAudioPlayer {
-    private _audio: HTMLAudioElement;
+    public audio: HTMLAudioElement = new Audio(); // TODO: just temporary for compatibility reasons
+    public playbackFinished$: Observable<void>;
+
+    private _player = new Gapless5({ guiId: 'gapless5-player-id' });
+
+    private _volumeBeforeMutemute: number = 1;
 
     public constructor(
         private mathExtensions: MathExtensions,
         private logger: Logger,
     ) {
-        this._audio = new Audio();
-
-        try {
-            // This fails during unit tests because setSinkId() does not exist on HTMLAudioElement
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-            this.audio.setSinkId('default');
-        } catch (e: unknown) {
-            // Suppress this error, but log it, in case it happens in production.
-            this.logger.error(e, 'Could not perform setSinkId()', 'AudioPlayer', 'constructor');
-        }
-
-        this.audio.defaultPlaybackRate = 1;
-        this.audio.playbackRate = 1;
-        this.audio.volume = 1;
-        this.audio.muted = false;
-
-        this.audio.onended = () => this.playbackFinished.next();
-    }
-
-    private playbackFinished: Subject<void> = new Subject();
-    public playbackFinished$: Observable<void> = this.playbackFinished.asObservable();
-
-    public get audio(): HTMLAudioElement {
-        return this._audio;
+        this._player.volume = 1;
     }
 
     public get progressSeconds(): number {
-        if (isNaN(this.audio.currentTime)) {
+        if (isNaN(this._player.getPosition())) {
             return 0;
         }
 
-        return this.audio.currentTime;
+        return this._player.getPosition() / 1000;
     }
 
     public get totalSeconds(): number {
-        if (isNaN(this.audio.duration)) {
+        if (isNaN(this._player.get)) {
             return 0;
         }
 
@@ -57,44 +37,46 @@ export class GaplessAudioPlayer implements IAudioPlayer {
     }
 
     public get supportsGaplessPlayback(): boolean {
-        return true;
+        return false;
     }
 
     public play(audioFilePath: string): void {
         const playableAudioFilePath: string = this.replaceUnplayableCharacters(audioFilePath);
+        this._player.addTrack(playableAudioFilePath);
         this.audio.src = 'file:///' + playableAudioFilePath;
-        PromiseUtils.noAwait(this.audio.play());
+        this._player.play();
     }
 
     public stop(): void {
-        this.audio.currentTime = 0;
-        this.audio.pause();
+        // TODO
     }
 
     public pause(): void {
-        this.audio.pause();
+        // TODO
     }
 
     public resume(): void {
-        PromiseUtils.noAwait(this.audio.play());
+        // TODO
     }
 
     public setVolume(linearVolume: number): void {
         // log(0) is undefined. So we provide a minimum of 0.01.
         const logarithmicVolume: number = linearVolume > 0 ? this.mathExtensions.linearToLogarithmic(linearVolume, 0.01, 1) : 0;
         this.audio.volume = logarithmicVolume;
+        this._player.volume = volume;
     }
 
     public mute(): void {
-        this.audio.muted = true;
+        this._volumeBeforeMutemute = this._player.volume;
+        this._player.volume = 0;
     }
 
     public unMute(): void {
-        this.audio.muted = false;
+        this._player.volume = this._volumeBeforeMutemute;
     }
 
     public skipToSeconds(seconds: number): void {
-        this.audio.currentTime = seconds;
+        this._player.setPosition(seconds * 1000);
     }
 
     private replaceUnplayableCharacters(audioFilePath: string): string {
@@ -102,5 +84,10 @@ export class GaplessAudioPlayer implements IAudioPlayer {
         let playableAudioFilePath: string = StringUtils.replaceAll(audioFilePath, '#', '%23');
         playableAudioFilePath = StringUtils.replaceAll(playableAudioFilePath, '?', '%3F');
         return playableAudioFilePath;
+    }
+
+    public preloadTrack(audioFilePath: string): void {
+        const playableAudioFilePath: string = this.replaceUnplayableCharacters(audioFilePath);
+        this._player.addTrack(playableAudioFilePath);
     }
 }

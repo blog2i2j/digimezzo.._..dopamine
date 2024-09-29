@@ -381,6 +381,8 @@ export class PlaybackService implements PlaybackServiceBase {
     private play(trackToPlay: TrackModel, isPlayingPreviousTrack: boolean): void {
         this._audioPlayer.stop();
         this._audioPlayer.play(trackToPlay.path);
+        this._audioPlayer.preloadTrack(this.queue.getNextTrack(trackToPlay, false)?.path ?? '');
+        this._audioPlayer.skipToSeconds(60);
         this.currentTrack = trackToPlay;
         this._isPlaying = true;
         this._canPause = true;
@@ -496,9 +498,9 @@ export class PlaybackService implements PlaybackServiceBase {
         );
         this._audioPlayer.setVolume(this._volume);
 
-        this._audioPlayer.playbackFinished$.pipe(takeUntil(this.destroyAudioPlayerSubscriptions$)).subscribe(() => {
-            this.playbackFinishedHandler();
-        });
+        // this._audioPlayer.playbackFinished$.pipe(takeUntil(this.destroyAudioPlayerSubscriptions$)).subscribe(() => {
+        //     this.playbackFinishedHandler();
+        // });
     }
 
     private applyVolume(volume: number): void {
