@@ -226,15 +226,6 @@ export class TrackModel implements ISelectable {
         return this.track.dateAdded ?? 0;
     }
 
-    public increasePlayCountAndDateLastPlayed(): void {
-        if (this.track.playCount == undefined) {
-            this.track.playCount = 0;
-        }
-
-        this.track.playCount++;
-        this.track.dateLastPlayed = this.dateTime.convertDateToTicks(new Date());
-    }
-
     public increaseSkipCount(): void {
         if (this.track.skipCount == undefined) {
             this.track.skipCount = 0;

@@ -9,11 +9,9 @@ import { TrackModels } from '../track/track-models';
 import { LoopMode } from './loop-mode';
 import { PlaybackProgress } from './playback-progress';
 import { PlaybackStarted } from './playback-started';
-import { IAudioPlayer } from './i-audio-player';
 
 export abstract class PlaybackServiceBase {
     public abstract playbackQueue: TrackModels;
-    public abstract hasPlaybackQueue: boolean;
     public abstract progressChanged$: Observable<PlaybackProgress>;
     public abstract playbackStarted$: Observable<PlaybackStarted>;
     public abstract playbackPaused$: Observable<void>;
@@ -28,7 +26,6 @@ export abstract class PlaybackServiceBase {
     public abstract isPlaying: boolean;
     public abstract canPause: boolean;
     public abstract canResume: boolean;
-    public abstract audioPlayer: IAudioPlayer;
     public abstract togglePlayback(): void;
     public abstract toggleLoopMode(): void;
     public abstract toggleIsShuffled(): void;

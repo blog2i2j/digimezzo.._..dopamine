@@ -39,11 +39,13 @@ export class AudioVisualizer {
     }
 
     private getSourceForAudioContext(audioContext: AudioContext): MediaElementAudioSourceNode {
-        return audioContext.createMediaElementSource(this.playbackService.audioPlayer.audio as HTMLMediaElement);
+        // return audioContext.createMediaElementSource(this.playbackService.audioPlayer.audio as HTMLMediaElement);
+        return audioContext.createMediaElementSource(new Audio() as HTMLMediaElement);
     }
 
     private shouldStopDelayed(): boolean {
-        return this.playbackService.audioPlayer.audio.paused;
+        // return this.playbackService.audioPlayer.audio.paused;
+        return new Audio().paused;
     }
 
     private shouldStopNow(): boolean {

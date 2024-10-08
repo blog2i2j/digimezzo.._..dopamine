@@ -210,11 +210,11 @@ export class TrackService implements TrackServiceBase {
         }
     }
 
-    public savePlayCountAndDateLastPlayed(track: TrackModel): void {
-        this.trackRepository.updatePlayCountAndDateLastPlayed(track.id, track.playCount, track.dateLastPlayed);
+    public savePlayCountAndDateLastPlayed(trackId: number, playCount: number, dateLastPlayed: number): void {
+        this.trackRepository.updatePlayCountAndDateLastPlayed(trackId, playCount, dateLastPlayed);
     }
 
-    public saveSkipCount(track: TrackModel): void {
-        this.trackRepository.updateSkipCount(track.id, track.skipCount);
+    public saveSkipCount(trackId: number, skipCount: number): void {
+        this.trackRepository.updateSkipCount(trackId, skipCount);
     }
 }
