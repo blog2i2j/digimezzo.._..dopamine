@@ -14,14 +14,14 @@ export class AudioPlayer implements AudioPlayerBase {
     private _buffer: AudioBuffer | undefined = undefined;
     private _sourceNode: AudioBufferSourceNode | undefined = undefined;
     private _gainNode: GainNode;
-    private _isPlayingOnWebAudio: boolean = false;
     private _webAudioStartTime: number = 0;
     private _webAudioPausedAt: number = 0;
     private _analyser: AnalyserNode;
     private _enableGaplessPlayback: boolean = true;
     private _isPaused: boolean;
-    private _pausedWhilePlayingOnHtml5Audio: boolean = false;
-    private _nextAudioPath: string = '';
+    private _currentPlayableAudioFilePath: string = '';
+    private _gainNodeVolumeBeforeMute: number = 0;
+    private _keepHtml5AudioMuted: boolean = false;
 
     public constructor(
         private mathExtensions: MathExtensions,
@@ -30,7 +30,6 @@ export class AudioPlayer implements AudioPlayerBase {
     ) {
         this._enableGaplessPlayback = this.settings.enableGaplessPlayback;
         this._audio = new Audio();
-        this._audio.preload = 'auto';
         this._audioContext = new AudioContext();
         this._gainNode = this._audioContext.createGain();
         this._gainNode.connect(this._audioContext.destination);
@@ -77,27 +76,19 @@ export class AudioPlayer implements AudioPlayerBase {
     }
 
     public get progressSeconds(): number {
-        if (this._isPlayingOnWebAudio) {
-            return this._audioContext.currentTime - this._webAudioStartTime;
-        } else {
-            if (isNaN(this.audio.currentTime)) {
-                return 0;
-            }
-
-            return this.audio.currentTime;
+        if (isNaN(this.audio.currentTime)) {
+            return 0;
         }
+
+        return this.audio.currentTime;
     }
 
     public get totalSeconds(): number {
-        if (this._isPlayingOnWebAudio) {
-            return this._buffer?.duration || 0;
-        } else {
-            if (isNaN(this.audio.duration)) {
-                return 0;
-            }
-
-            return this.audio.duration;
+        if (isNaN(this.audio.duration)) {
+            return 0;
         }
+
+        return this.audio.duration;
     }
 
     public get isPaused(): boolean {
@@ -105,13 +96,11 @@ export class AudioPlayer implements AudioPlayerBase {
     }
 
     public play(audioFilePath: string): void {
-        this._isPlayingOnWebAudio = false;
-
-        if (audioFilePath !== this._nextAudioPath) {
-            const playableAudioFilePath: string = this.replaceUnplayableCharacters(audioFilePath);
-            this.audio.src = 'file:///' + playableAudioFilePath;
-        }
-
+        const playableAudioFilePath: string = this.replaceUnplayableCharacters(audioFilePath);
+        this._currentPlayableAudioFilePath = playableAudioFilePath;
+        this._keepHtml5AudioMuted = false;
+        this.audio.src = 'file:///' + playableAudioFilePath;
+        this.audio.muted = false;
         this.audio.play();
 
         if (this._enableGaplessPlayback) {
@@ -121,20 +110,26 @@ export class AudioPlayer implements AudioPlayerBase {
     }
 
     public stop(): void {
-        if (this._isPlayingOnWebAudio) {
+        // Html5 audio
+        this.audio.currentTime = 0;
+        this.audio.pause();
+
+        // Web audio
+        if (this._enableGaplessPlayback) {
             if (this._sourceNode) {
                 this._sourceNode.onended = () => {};
                 this._sourceNode.stop();
                 this._sourceNode.disconnect();
             }
-        } else {
-            this.audio.currentTime = 0;
-            this.audio.pause();
         }
     }
 
     public pause(): void {
-        if (this._isPlayingOnWebAudio) {
+        // Html5 audio
+        this.audio.pause();
+
+        // Web audio
+        if (this._enableGaplessPlayback) {
             this._webAudioPausedAt = this._audioContext.currentTime - this._webAudioStartTime;
 
             if (this._sourceNode) {
@@ -142,19 +137,16 @@ export class AudioPlayer implements AudioPlayerBase {
                 this._sourceNode.stop();
                 this._sourceNode.disconnect();
             }
-        } else {
-            this.audio.pause();
-            this._pausedWhilePlayingOnHtml5Audio = true;
         }
     }
 
     public resume(): void {
-        this._pausedWhilePlayingOnHtml5Audio = false;
+        // Html5 audio
+        PromiseUtils.noAwait(this.audio.play());
 
-        if (this._isPlayingOnWebAudio) {
+        // Web audio
+        if (this._enableGaplessPlayback) {
             this.playWebAudio(this._webAudioPausedAt);
-        } else {
-            PromiseUtils.noAwait(this.audio.play());
         }
     }
 
@@ -162,22 +154,42 @@ export class AudioPlayer implements AudioPlayerBase {
         // log(0) is undefined. So we provide a minimum of 0.01.
         const logarithmicVolume: number = linearVolume > 0 ? this.mathExtensions.linearToLogarithmic(linearVolume, 0.01, 1) : 0;
         this.audio.volume = logarithmicVolume;
-        this._gainNode.gain.setValueAtTime(logarithmicVolume, 0);
+
+        if (this._enableGaplessPlayback) {
+            this._gainNode.gain.setValueAtTime(logarithmicVolume, 0);
+        }
     }
 
     public mute(): void {
+        // Html5 audio
         this.audio.muted = true;
+
+        // Web audio
+        if (this._enableGaplessPlayback) {
+            this._gainNodeVolumeBeforeMute = this._gainNode.gain.value;
+            this._gainNode.gain.setValueAtTime(1, 0);
+        }
     }
 
     public unMute(): void {
-        this.audio.muted = false;
+        // Html5 audio
+        if (!this._keepHtml5AudioMuted) {
+            this.audio.muted = false;
+        }
+
+        // Web audio
+        if (this._enableGaplessPlayback) {
+            this._gainNode.gain.setValueAtTime(this._gainNodeVolumeBeforeMute, 0);
+        }
     }
 
     public skipToSeconds(seconds: number): void {
-        if (this._isPlayingOnWebAudio) {
+        // Html5 audio
+        this.audio.currentTime = seconds;
+
+        // Web audio
+        if (this._enableGaplessPlayback) {
             this.playWebAudio(seconds);
-        } else {
-            this.audio.currentTime = seconds;
         }
     }
 
@@ -196,15 +208,15 @@ export class AudioPlayer implements AudioPlayerBase {
         return await response.blob(); // Convert the response to a Blob
     }
 
-    private async loadAudioWithWebAudio(audioFilePath: string): Promise<void> {
-        this.fetchAudioFile(audioFilePath)
+    private async loadAudioWithWebAudio(playableAudioFilePath: string): Promise<void> {
+        this.fetchAudioFile(playableAudioFilePath)
             .then((blob) => {
                 const reader = new FileReader();
                 reader.readAsArrayBuffer(blob);
                 reader.onloadend = async () => {
                     const arrayBuffer = reader.result as ArrayBuffer;
                     this._buffer = await this._audioContext.decodeAudioData(arrayBuffer);
-                    this.switchToWebAudio();
+                    this.switchToWebAudio(playableAudioFilePath);
                 };
             })
             .catch((error) => console.error(error));
@@ -215,8 +227,7 @@ export class AudioPlayer implements AudioPlayerBase {
             return;
         }
 
-        if (this._pausedWhilePlayingOnHtml5Audio) {
-            this._pausedWhilePlayingOnHtml5Audio = false;
+        if (this._audio.paused) {
             return;
         }
 
@@ -243,32 +254,28 @@ export class AudioPlayer implements AudioPlayerBase {
                 this.playbackFinished.next();
             };
 
-            this._isPlayingOnWebAudio = true;
-
             // Store the current time when audio starts playing
             this._webAudioStartTime = this._audioContext.currentTime - offset;
 
             // Sync playback position with HTML5 Audio
             this._sourceNode.start(0, offset);
+
+            // Sync HTML5 audio with WebAudio
+            this._audio.currentTime = offset;
         } catch (error) {}
     }
 
-    private switchToWebAudio(): void {
-        // Get the current position of HTML5 audio
-        const currentTime = this._audio.currentTime;
+    private switchToWebAudio(playableAudioFilePath: string): void {
+        if (this._currentPlayableAudioFilePath !== playableAudioFilePath) {
+            return;
+        }
 
-        // Pause the HTML5 Audio
-        this._audio.pause();
+        // Get the current position of HTML5 audio
+        const currentTime: number = this._audio.currentTime;
+
+        this.audio.muted = true;
+        this._keepHtml5AudioMuted = true;
 
         this.playWebAudio(currentTime);
-    }
-
-    public preloadNextTrack(audioFilePath: string): void {
-        if (this._isPlayingOnWebAudio) {
-            this._nextAudioPath = audioFilePath;
-            const playableAudioFilePath: string = this.replaceUnplayableCharacters(audioFilePath);
-            this._audio.src = 'file:///' + playableAudioFilePath;
-            this._audio.load();
-        }
     }
 }
