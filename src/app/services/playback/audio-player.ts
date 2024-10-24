@@ -8,19 +8,20 @@ import { SettingsBase } from '../../common/settings/settings.base';
 
 @Injectable()
 export class AudioPlayer implements AudioPlayerBase {
-    private _audio: HTMLAudioElement;
+    private readonly _audio: HTMLAudioElement;
     private _audioContext: AudioContext;
     private _buffer: AudioBuffer | undefined = undefined;
     private _sourceNode: AudioBufferSourceNode | undefined = undefined;
-    private _gainNode: GainNode;
+    private readonly _gainNode: GainNode;
     private _webAudioStartTime: number = 0;
     private _webAudioPausedAt: number = 0;
-    private _analyser: AnalyserNode;
-    private _enableGaplessPlayback: boolean = true;
+    private readonly _analyser: AnalyserNode;
+    private readonly _enableGaplessPlayback: boolean = true;
     private _isPaused: boolean;
     private _currentPlayableAudioFilePath: string = '';
     private _gainNodeVolumeBeforeMute: number = 0;
     private _keepHtml5AudioMuted: boolean = false;
+    private _isPlayingOnWebAudio: boolean = false;
 
     public constructor(
         private mathExtensions: MathExtensions,
@@ -75,19 +76,27 @@ export class AudioPlayer implements AudioPlayerBase {
     }
 
     public get progressSeconds(): number {
-        if (isNaN(this._audio.currentTime)) {
-            return 0;
-        }
+        if (this._isPlayingOnWebAudio) {
+            return this._audioContext.currentTime - this._webAudioStartTime;
+        } else {
+            if (isNaN(this.audio.currentTime)) {
+                return 0;
+            }
 
-        return this._audio.currentTime;
+            return this.audio.currentTime;
+        }
     }
 
     public get totalSeconds(): number {
-        if (isNaN(this._audio.duration)) {
-            return 0;
-        }
+        if (this._isPlayingOnWebAudio) {
+            return this._buffer?.duration || 0;
+        } else {
+            if (isNaN(this.audio.duration)) {
+                return 0;
+            }
 
-        return this._audio.duration;
+            return this.audio.duration;
+        }
     }
 
     public get isPaused(): boolean {
@@ -95,6 +104,8 @@ export class AudioPlayer implements AudioPlayerBase {
     }
 
     public play(audioFilePath: string): void {
+        this._isPlayingOnWebAudio = false;
+
         const playableAudioFilePath: string = this.replaceUnplayableCharacters(audioFilePath);
         this._currentPlayableAudioFilePath = playableAudioFilePath;
         this._keepHtml5AudioMuted = false;
@@ -252,6 +263,8 @@ export class AudioPlayer implements AudioPlayerBase {
             this._sourceNode.onended = () => {
                 this.playbackFinished.next();
             };
+
+            this._isPlayingOnWebAudio = true;
 
             // Store the current time when audio starts playing
             this._webAudioStartTime = this._audioContext.currentTime - offset;
