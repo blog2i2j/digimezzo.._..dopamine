@@ -2,7 +2,6 @@ import { Injectable } from '@angular/core';
 import { Observable, Subject } from 'rxjs';
 import { Logger } from '../../common/logger';
 import { MathExtensions } from '../../common/math-extensions';
-import { PromiseUtils } from '../../common/utils/promise-utils';
 import { StringUtils } from '../../common/utils/string-utils';
 import { AudioPlayerBase } from './audio-player.base';
 import { SettingsBase } from '../../common/settings/settings.base';
@@ -76,19 +75,19 @@ export class AudioPlayer implements AudioPlayerBase {
     }
 
     public get progressSeconds(): number {
-        if (isNaN(this.audio.currentTime)) {
+        if (isNaN(this._audio.currentTime)) {
             return 0;
         }
 
-        return this.audio.currentTime;
+        return this._audio.currentTime;
     }
 
     public get totalSeconds(): number {
-        if (isNaN(this.audio.duration)) {
+        if (isNaN(this._audio.duration)) {
             return 0;
         }
 
-        return this.audio.duration;
+        return this._audio.duration;
     }
 
     public get isPaused(): boolean {
@@ -99,9 +98,9 @@ export class AudioPlayer implements AudioPlayerBase {
         const playableAudioFilePath: string = this.replaceUnplayableCharacters(audioFilePath);
         this._currentPlayableAudioFilePath = playableAudioFilePath;
         this._keepHtml5AudioMuted = false;
-        this.audio.src = 'file:///' + playableAudioFilePath;
-        this.audio.muted = false;
-        this.audio.play();
+        this._audio.src = 'file:///' + playableAudioFilePath;
+        this._audio.muted = false;
+        this._audio.play();
 
         if (this._enableGaplessPlayback) {
             const playableAudioFilePath: string = this.replaceUnplayableCharacters(audioFilePath);
@@ -111,8 +110,8 @@ export class AudioPlayer implements AudioPlayerBase {
 
     public stop(): void {
         // Html5 audio
-        this.audio.currentTime = 0;
-        this.audio.pause();
+        this._audio.currentTime = 0;
+        this._audio.pause();
 
         // Web audio
         if (this._enableGaplessPlayback) {
@@ -126,7 +125,7 @@ export class AudioPlayer implements AudioPlayerBase {
 
     public pause(): void {
         // Html5 audio
-        this.audio.pause();
+        this._audio.pause();
 
         // Web audio
         if (this._enableGaplessPlayback) {
@@ -142,7 +141,7 @@ export class AudioPlayer implements AudioPlayerBase {
 
     public resume(): void {
         // Html5 audio
-        PromiseUtils.noAwait(this.audio.play());
+        this._audio.play();
 
         // Web audio
         if (this._enableGaplessPlayback) {
@@ -153,7 +152,7 @@ export class AudioPlayer implements AudioPlayerBase {
     public setVolume(linearVolume: number): void {
         // log(0) is undefined. So we provide a minimum of 0.01.
         const logarithmicVolume: number = linearVolume > 0 ? this.mathExtensions.linearToLogarithmic(linearVolume, 0.01, 1) : 0;
-        this.audio.volume = logarithmicVolume;
+        this._audio.volume = logarithmicVolume;
 
         if (this._enableGaplessPlayback) {
             this._gainNode.gain.setValueAtTime(logarithmicVolume, 0);
@@ -162,7 +161,7 @@ export class AudioPlayer implements AudioPlayerBase {
 
     public mute(): void {
         // Html5 audio
-        this.audio.muted = true;
+        this._audio.muted = true;
 
         // Web audio
         if (this._enableGaplessPlayback) {
@@ -174,7 +173,7 @@ export class AudioPlayer implements AudioPlayerBase {
     public unMute(): void {
         // Html5 audio
         if (!this._keepHtml5AudioMuted) {
-            this.audio.muted = false;
+            this._audio.muted = false;
         }
 
         // Web audio
@@ -185,7 +184,7 @@ export class AudioPlayer implements AudioPlayerBase {
 
     public skipToSeconds(seconds: number): void {
         // Html5 audio
-        this.audio.currentTime = seconds;
+        this._audio.currentTime = seconds;
 
         // Web audio
         if (this._enableGaplessPlayback) {
@@ -273,7 +272,7 @@ export class AudioPlayer implements AudioPlayerBase {
         // Get the current position of HTML5 audio
         const currentTime: number = this._audio.currentTime;
 
-        this.audio.muted = true;
+        this._audio.muted = true;
         this._keepHtml5AudioMuted = true;
 
         this.playWebAudio(currentTime);
