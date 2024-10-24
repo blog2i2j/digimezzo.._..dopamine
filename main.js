@@ -23,6 +23,10 @@ electron_1.app.commandLine.appendSwitch('disable-color-correct-rendering'); // P
 electron_1.app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required'); // Prevents requiring user interaction to play audio
 electron_1.app.commandLine.appendSwitch('disable-http-cache'); // Disables clearing of the cache folder at each startup
 /**
+ * Set custom AppUserModelID to ensure the app name shows up in Windows media controls
+ */
+electron_1.app.setAppUserModelId('com.digimezzo.dopamine');
+/**
  * Logging
  */
 electron_log_1.default.create('main');

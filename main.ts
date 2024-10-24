@@ -23,6 +23,11 @@ app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required'); // 
 app.commandLine.appendSwitch('disable-http-cache'); // Disables clearing of the cache folder at each startup
 
 /**
+ * Set custom AppUserModelID to ensure the app name shows up in Windows media controls
+ */
+app.setAppUserModelId('com.digimezzo.dopamine');
+
+/**
  * Logging
  */
 log.create('main');
