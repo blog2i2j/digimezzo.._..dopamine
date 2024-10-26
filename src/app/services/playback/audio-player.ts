@@ -8,7 +8,7 @@ import { SettingsBase } from '../../common/settings/settings.base';
 
 @Injectable()
 export class AudioPlayer implements AudioPlayerBase {
-    private readonly _audio: HTMLAudioElement;
+    private _audio: HTMLAudioElement;
     private _audioContext: AudioContext;
     private _buffer: AudioBuffer | undefined = undefined;
     private _sourceNode: AudioBufferSourceNode | undefined = undefined;
@@ -109,7 +109,17 @@ export class AudioPlayer implements AudioPlayerBase {
         const playableAudioFilePath: string = this.replaceUnplayableCharacters(audioFilePath);
         this._currentPlayableAudioFilePath = playableAudioFilePath;
         this._keepHtml5AudioMuted = false;
-        this._audio.src = 'file:///' + playableAudioFilePath;
+
+        // This is a workaround to fix flickering of OS media controls when switching track from the media controls
+        const tempAudio: HTMLAudioElement = new Audio();
+        tempAudio.volume = this._audio.volume;
+        tempAudio.src = 'file:///' + playableAudioFilePath;
+        tempAudio.muted = this._audio.muted;
+        tempAudio.defaultPlaybackRate = this._audio.defaultPlaybackRate;
+        tempAudio.playbackRate = this._audio.playbackRate;
+
+        this._audio = tempAudio;
+
         this._audio.muted = false;
         this._audio.play();
 
