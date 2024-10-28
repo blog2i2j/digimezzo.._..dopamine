@@ -403,7 +403,7 @@ export class PlaybackService implements PlaybackServiceBase {
             this._preloadTimeoutId = setTimeout(() => {
                 this._audioPlayer.preloadNextTrack(this._nextTrack!.path);
                 this.logger.info(`Preloaded '${this._nextTrack!.path}'`, 'PlaybackService', 'preloadNextTrackAfterDelay');
-            }, 10000);
+            }, 2000);
         }
     }
 
