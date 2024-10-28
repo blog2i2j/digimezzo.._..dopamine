@@ -40,8 +40,9 @@ export class PlaybackService implements PlaybackServiceBase {
     private _canPause: boolean = false;
     private _canResume: boolean = true;
     private _volumeBeforeMute: number = 0;
-    private subscription: Subscription = new Subscription();
-    private nextTrack: TrackModel | undefined;
+    private _subscription: Subscription = new Subscription();
+    private _nextTrack: TrackModel | undefined;
+    private _preloadTimeoutId: NodeJS.Timeout | number | undefined;
 
     public constructor(
         private trackService: TrackServiceBase,
@@ -387,9 +388,23 @@ export class PlaybackService implements PlaybackServiceBase {
         this.progressUpdater.startUpdatingProgress();
         this.playbackStarted.next(new PlaybackStarted(trackToPlay, isPlayingPreviousTrack));
 
-        this.nextTrack = this.queue.getNextTrack(this.currentTrack, this.loopMode === LoopMode.All);
+        this._nextTrack = this.queue.getNextTrack(this.currentTrack, this.loopMode === LoopMode.All);
 
         this.logger.info(`Playing '${this.currentTrack.path}'`, 'PlaybackService', 'play');
+
+        this.preloadNextTrackAfterDelay();
+    }
+
+    private preloadNextTrackAfterDelay(): void {
+        if (this._nextTrack) {
+            if (this._preloadTimeoutId) {
+                clearTimeout(this._preloadTimeoutId);
+            }
+            this._preloadTimeoutId = setTimeout(() => {
+                this._audioPlayer.preloadNextTrack(this._nextTrack!.path);
+                this.logger.info(`Preloaded '${this._nextTrack!.path}'`, 'PlaybackService', 'preloadNextTrackAfterDelay');
+            }, 10000);
+        }
     }
 
     private stop(): void {
@@ -419,8 +434,8 @@ export class PlaybackService implements PlaybackServiceBase {
             return;
         }
 
-        if (this.nextTrack) {
-            this.play(this.nextTrack, false, false);
+        if (this._nextTrack) {
+            this.play(this._nextTrack, false, false);
 
             // delayed, to avoid interfering with gapless playback.
             setTimeout(() => {
@@ -472,13 +487,13 @@ export class PlaybackService implements PlaybackServiceBase {
     }
 
     private initializeSubscriptions(): void {
-        this.subscription.add(
+        this._subscription.add(
             this.audioPlayer.playbackFinished$.subscribe(() => {
                 this.playbackFinishedHandler();
             }),
         );
 
-        this.subscription.add(
+        this._subscription.add(
             this.progressUpdater.progressChanged$.subscribe((playbackProgress: PlaybackProgress) => {
                 this._progress = playbackProgress;
                 this.progressChanged.next(playbackProgress);

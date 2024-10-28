@@ -9,6 +9,7 @@ import { SettingsBase } from '../../common/settings/settings.base';
 @Injectable()
 export class AudioPlayer implements AudioPlayerBase {
     private _audio: HTMLAudioElement;
+    private _preloadAudio: HTMLAudioElement | undefined;
     private _audioContext: AudioContext;
     private _buffer: AudioBuffer | undefined = undefined;
     private _sourceNode: AudioBufferSourceNode | undefined = undefined;
@@ -22,6 +23,7 @@ export class AudioPlayer implements AudioPlayerBase {
     private _gainNodeVolumeBeforeMute: number = 0;
     private _keepHtml5AudioMuted: boolean = false;
     private _isPlayingOnWebAudio: boolean = false;
+    private _nextAudioPath: string = '';
 
     public constructor(
         private mathExtensions: MathExtensions,
@@ -110,15 +112,26 @@ export class AudioPlayer implements AudioPlayerBase {
         this._currentPlayableAudioFilePath = playableAudioFilePath;
         this._keepHtml5AudioMuted = false;
 
-        // This is a workaround to fix flickering of OS media controls when switching track from the media controls
-        const tempAudio: HTMLAudioElement = new Audio();
-        tempAudio.volume = this._audio.volume;
-        tempAudio.src = 'file:///' + playableAudioFilePath;
-        tempAudio.muted = this._audio.muted;
-        tempAudio.defaultPlaybackRate = this._audio.defaultPlaybackRate;
-        tempAudio.playbackRate = this._audio.playbackRate;
+        if (this._enableGaplessPlayback && this._preloadAudio && this._nextAudioPath === audioFilePath) {
+            this._preloadAudio.volume = this._audio.volume;
+            this._preloadAudio.muted = this._audio.muted;
+            this._preloadAudio.defaultPlaybackRate = this._audio.defaultPlaybackRate;
+            this._preloadAudio.playbackRate = this._audio.playbackRate;
 
-        this._audio = tempAudio;
+            this._audio = this._preloadAudio;
+            this._preloadAudio = undefined;
+            this._nextAudioPath = '';
+        } else {
+            // This is a workaround to fix flickering of OS media controls when switching track from the media controls
+            const tempAudio: HTMLAudioElement = new Audio();
+            tempAudio.volume = this._audio.volume;
+            tempAudio.src = 'file:///' + playableAudioFilePath;
+            tempAudio.muted = this._audio.muted;
+            tempAudio.defaultPlaybackRate = this._audio.defaultPlaybackRate;
+            tempAudio.playbackRate = this._audio.playbackRate;
+
+            this._audio = tempAudio;
+        }
 
         this._audio.muted = false;
         this._audio.play();
@@ -299,5 +312,16 @@ export class AudioPlayer implements AudioPlayerBase {
         this._keepHtml5AudioMuted = true;
 
         this.playWebAudio(currentTime);
+    }
+
+    public preloadNextTrack(audioFilePath: string): void {
+        if (this._enableGaplessPlayback && this._isPlayingOnWebAudio) {
+            this._nextAudioPath = audioFilePath;
+            const playableAudioFilePath: string = this.replaceUnplayableCharacters(audioFilePath);
+            this._preloadAudio = new Audio();
+            this._audio.preload = 'auto';
+            this._preloadAudio.src = 'file:///' + playableAudioFilePath;
+            this._preloadAudio.load();
+        }
     }
 }
