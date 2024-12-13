@@ -104,14 +104,17 @@ jobs:
           run: |
             curl -L -o 7z.exe https://www.7-zip.org/a/7z2201-x64.exe
             Start-Process -FilePath 7z.exe -ArgumentList '/S' -Wait
-        - name: Create 7z Archive
+        - name: Create 7z Archive Without Subfolder
           shell: cmd
-          run: '"C:\Program Files\7-Zip\7z.exe" a dopamine-nightly-win.7z Dopamine-*.exe'
+          run: |
+            cd release
+            "C:\Program Files\7-Zip\7z.exe" a ../dopamine-nightly-win.7z *
         - name: Upload Build Artifact
           uses: actions/upload-artifact@v4
           with:
             name: dopamine-nightly-win
             path: dopamine-nightly-win.7z
+    
     
     
     
