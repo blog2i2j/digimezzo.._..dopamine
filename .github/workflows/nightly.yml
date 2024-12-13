@@ -82,26 +82,31 @@ jobs:
                   path: release/Dopamine-*.dmg
 
     nightly_build_on_win:
-        runs-on: windows-2019
-        steps:
-            - uses: actions/checkout@v2
-            - uses: actions/setup-node@master
-              with:
-                  node-version: '20.x'
-            - name: install dependencies
-              run: npm install
-            - name: run unit tests
-              run: npm run test
-            - name: build
-              run: npm run electron:windows
-            - name: fetch current version
-              id: ver_name
-              uses: notiz-dev/github-action-json-property@release
-              with:
-                  path: 'package.json'
-                  prop_path: 'version'
-            - name: upload build artifacts
-              uses: actions/upload-artifact@v4
-              with:
-                  name: dopamine-nightly-win
-                  path: release\Dopamine-*.exe
+      runs-on: windows-2019
+      steps:
+        - uses: actions/checkout@v2
+        - uses: actions/setup-node@master
+          with:
+            node-version: '20.x'
+        - name: Install dependencies
+          run: npm install
+        - name: Run unit tests
+          run: npm run test
+        - name: Build
+          run: npm run electron:windows
+        - name: Fetch current version
+          id: ver_name
+          uses: notiz-dev/github-action-json-property@release
+          with:
+            path: 'package.json'
+            prop_path: 'version'
+        - name: Install 7-Zip
+          uses: chrislennon/action-7zip@v1
+        - name: Create ZIP Archive
+          run: 7z a dopamine-nightly-win.zip release\Dopamine-*.exe
+        - name: Upload Build Artifact
+          uses: actions/upload-artifact@v4
+          with:
+            name: dopamine-nightly-win
+            path: dopamine-nightly-win.zip
+    
