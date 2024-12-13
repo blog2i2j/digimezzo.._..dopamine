@@ -106,12 +106,14 @@ jobs:
             Start-Process -FilePath 7z.exe -ArgumentList '/S' -Wait
         - name: Create 7z Archive
           shell: cmd
-          run: '"C:\Program Files\7-Zip\7z.exe" a dopamine-nightly-win.7z release\Dopamine-*.exe'
-        - name: Upload Build Artifact
+          run: '"C:\Program Files\7-Zip\7z.exe" a dopamine-nightly-win.7z Dopamine-*.exe'
+        - name: Upload 7z Artifact
           uses: actions/upload-artifact@v4
           with:
             name: dopamine-nightly-win
             path: dopamine-nightly-win.7z
+            if-no-files-found: ignore
+    
     
     
     
