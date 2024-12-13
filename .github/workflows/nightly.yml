@@ -100,13 +100,16 @@ jobs:
           with:
             path: 'package.json'
             prop_path: 'version'
-        - name: Install 7-Zip
-          uses: chrislennon/action-7zip@v1
-        - name: Create ZIP Archive
-          run: 7z a dopamine-nightly-win.zip release\Dopamine-*.exe
+        - name: Download and Install 7-Zip
+          run: |
+            curl -L -o 7z.exe https://www.7-zip.org/a/7z2201-x64.exe
+            Start-Process -FilePath 7z.exe -ArgumentList '/S' -Wait
+        - name: Create 7z Archive
+          run: '"C:\Program Files\7-Zip\7z.exe" a dopamine-nightly-win.7z release\Dopamine-*.exe'
         - name: Upload Build Artifact
           uses: actions/upload-artifact@v4
           with:
             name: dopamine-nightly-win
-            path: dopamine-nightly-win.zip
+            path: dopamine-nightly-win.7z
+    
     
