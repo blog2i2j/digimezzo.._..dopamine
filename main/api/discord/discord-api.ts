@@ -110,6 +110,10 @@ export class DiscordApi {
             return;
         }
 
+        if (this._isReady) {
+            this._client.clearActivity();
+        }
+
         this._client.destroy();
         log.info('[DiscordApi] [shutdown] Discord client destroyed.');
     }
