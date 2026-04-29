@@ -1,6 +1,7 @@
 @import 'colors';
 
 .similar-artist__picture {
+    --similar-artist-size: clamp(120px, min(16vw, 20vh), 280px);
     overflow: hidden;
     background: var(--theme-album-cover-background);
     display: grid;

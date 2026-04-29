@@ -1,4 +1,6 @@
-import { Component, OnDestroy, OnInit, ViewEncapsulation } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit, ViewEncapsulation } from '@angular/core';
+import { WindowSize } from '../../../../common/io/window-size';
+import { ApplicationBase } from '../../../../common/io/application.base';
 import { Subscription } from 'rxjs';
 import { PromiseUtils } from '../../../../common/utils/promise-utils';
 import { TrackModel } from '../../../../services/track/track-model';
@@ -28,13 +30,20 @@ export class NowPlayingLyricsComponent implements OnInit, OnDestroy {
         private appearanceService: AppearanceServiceBase,
         private playbackInformationService: PlaybackInformationService,
         private lyricsService: LyricsServiceBase,
+        private application: ApplicationBase,
         public settings: SettingsBase,
     ) {}
 
     public lyricsSourceTypeEnum: typeof LyricsSourceType = LyricsSourceType;
 
+    public coverArtSize: number = 0;
     public largeFontSize: number = this.appearanceService.selectedFontSize * 1.7;
     public smallFontSize: number = this.appearanceService.selectedFontSize;
+
+    @HostListener('window:resize')
+    public onResize(): void {
+        this.setSizes();
+    }
 
     public get isBusy(): boolean {
         return this._isBusy;
@@ -67,6 +76,7 @@ export class NowPlayingLyricsComponent implements OnInit, OnDestroy {
     }
 
     public async ngOnInit(): Promise<void> {
+        this.setSizes();
         this.initializeSubscriptions();
         const currentPlaybackInformation: PlaybackInformation = await this.playbackInformationService.getCurrentPlaybackInformationAsync();
         await this.showLyricsAsync(currentPlaybackInformation.track);
@@ -90,6 +100,19 @@ export class NowPlayingLyricsComponent implements OnInit, OnDestroy {
                 PromiseUtils.noAwait(this.showLyricsAsync(playbackInformation.track));
             }),
         );
+    }
+
+    private setSizes(): void {
+        const applicationWindowSize: WindowSize = this.application.getWindowSize();
+        const playbackControlsHeight: number = 70;
+        const windowControlsHeight: number = 46;
+        const horizontalMargin: number = 100;
+
+        const availableWidth: number = applicationWindowSize.width - horizontalMargin;
+        const availableHeight: number = applicationWindowSize.height - (playbackControlsHeight + windowControlsHeight);
+
+        const meanSize = Math.sqrt(availableWidth * availableHeight);
+        this.coverArtSize = meanSize / 3;
     }
 
     private async showLyricsAsync(track: TrackModel | undefined): Promise<void> {

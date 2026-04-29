@@ -1,5 +1,13 @@
 @import 'variables';
 
+.drag {
+    -webkit-app-region: drag;
+}
+
+.no-drag {
+    -webkit-app-region: no-drag;
+}
+
 .no-select {
     user-select: none;
 }
@@ -124,15 +132,6 @@
 
 .break-on-newline {
     white-space: pre-line;
-}
-
-.app-window-draggable {
-    cursor: grab;
-}
-
-.app-window-draggable.app-window-draggable-dragging,
-.app-window-draggable.app-window-draggable-dragging * {
-    cursor: grabbing !important;
 }
 
 .title {

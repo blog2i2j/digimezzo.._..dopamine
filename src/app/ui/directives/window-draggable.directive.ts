@@ -2,6 +2,8 @@ import { Directive, HostBinding, HostListener, Input, NgZone, OnDestroy } from '
 import * as remote from '@electron/remote';
 import { AppearanceServiceBase } from '../../services/appearance/appearance.service.base';
 
+// NOTE: This directive does not work on Wayland due to how Wayland manages window positioning.
+// Wayland does not allow applications to set their own window position, so dragging has no effect.
 @Directive({
     selector: '[appWindowDraggable]',
 })

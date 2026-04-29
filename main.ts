@@ -206,6 +206,8 @@ function createMainWindow(): void {
         titleBarStyle: titleBarStyle(),
         trafficLightPosition: isMacOS() ? { x: 10, y: 15 } : undefined,
         icon: path.join(globalAny.__static, isWindows() ? 'icons/icon.ico' : 'icons/64x64.png'),
+        minWidth: 700,
+        minHeight: 500,
         webPreferences: {
             webSecurity: false,
             nodeIntegration: true,
@@ -213,8 +215,6 @@ function createMainWindow(): void {
             devTools: !app.isPackaged,
         },
         show: false,
-        minWidth: 800,
-        minHeight: 600,
     });
 
     mainWindow.excludedFromShownWindowsMenu = true;

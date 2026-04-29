@@ -1,3 +1,5 @@
+@import 'variables';
+
 .collection-component {
     display: flex;
     flex-direction: column;
@@ -42,4 +44,10 @@
     position: absolute;
     bottom: 0;
     z-index: 1;
+}
+
+.app-collection-header__controls {
+    display: flex;
+    flex-direction: row;
+    height: $titlebar-height;
 }

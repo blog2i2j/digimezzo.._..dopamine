@@ -1,0 +1,22 @@
+<div class="app-highlights-playback-pane">
+    <app-playback-progress class="app-highlights-playback-pane__progressbar">
+        <button class="transparent-round-button__button pointer mx-1" matRipple matTooltip="{{ 'loop' | translate }}">
+            <i class="transparent-round-button__icon las la-redo-alt"></i>
+        </button>
+    </app-playback-progress>
+    <div class="app-highlights-playback-pane__controls">
+        <div class="app-highlights-playback-pane-controls__left"></div>
+        <div class="app-highlights-playback-pane-controls__center">
+            <app-playback-controls></app-playback-controls>
+        </div>
+        <div class="app-highlights-playback-pane-controls__right">
+            <app-playback-time class="app-highlights-playback-pane-controls__time mr-4"></app-playback-time>
+            <i
+                class="app-now-playing__button las la-tasks pointer mr-4"
+                (click)="this.showPlaybackQueue()"
+                matTooltip="{{ 'playback-queue' | translate }}"
+            ></i>
+            <app-volume-control class="app-highlights-playback-pane_volume mr-3"></app-volume-control>
+        </div>
+    </div>
+</div>

@@ -148,7 +148,6 @@ import { WelcomeComponent } from './ui/components/welcome/welcome.component';
 import { WindowControlsComponent } from './ui/components/window-controls/window-controls.component';
 import { CdkVirtualScrollViewportPatchDirective } from './ui/directives/cdk-virtual-scroll-viewport-patch-directive';
 import { WebviewDirective } from './ui/directives/webview.directive';
-import { WindowDraggableDirective } from './ui/directives/window-draggable.directive';
 import { GlobalErrorHandler } from './globalErrorHandler';
 import { AlbumsFilterPipe } from './ui/pipes/albums-filter.pipe';
 import { FolderNamePipe } from './ui/pipes/folder-name.pipe';
@@ -301,6 +300,8 @@ import { SrtLyricsGetter } from './services/lyrics/srt-lyrics-getter';
 import { HighlightsComponent } from './ui/components/highlights/highlights.component';
 import { AlbumPlaceholderComponent } from './ui/components/highlights/album-placeholder.component';
 import { EditSmartPlaylistDialogComponent } from './ui/components/dialogs/edit-smart-playlist-dialog/edit-smart-playlist-dialog.component';
+import { HighlightsPlaybackPaneComponent } from './ui/components/highlights/highlights-playback-pane/highlights-playback-pane.component';
+import { WindowDraggableDirective } from './ui/directives/window-draggable.directive';
 
 export function HttpLoaderFactory(http: HttpClient): TranslateHttpLoader {
     return new TranslateHttpLoader(http, './assets/i18n/', '.json');
@@ -381,6 +382,7 @@ export function settingsInitializerFactory(settings: SettingsBase) {
         ComponentsComponent,
         CollectionFoldersComponent,
         CollectionPlaybackPaneComponent,
+        HighlightsPlaybackPaneComponent,
         VolumeControlComponent,
         SliderComponent,
         SwitchPlayerButtonComponent,
