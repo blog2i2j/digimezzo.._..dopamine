@@ -6,6 +6,11 @@
         >
     </div>
     <div>
+        <app-toggle-switch class="mt-3" [(isChecked)]="settings.showRefreshNotificationAtStartup">
+            {{ 'show-refresh-notification-at-startup' | translate }}</app-toggle-switch
+        >
+    </div>
+    <div>
         <app-toggle-switch class="mt-3" [(isChecked)]="settings.skipRemovedFilesDuringRefresh">
             {{ 'skip-previously-removed-files' | translate }}</app-toggle-switch
         >

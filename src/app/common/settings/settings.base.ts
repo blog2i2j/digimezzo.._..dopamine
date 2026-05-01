@@ -98,4 +98,5 @@ export abstract class SettingsBase {
     public abstract showRichLyrics: boolean;
     public abstract richLyricsLineCount: number;
     public abstract richLyricsFontSize: number;
+    public abstract showRefreshNotificationAtStartup: boolean;
 }

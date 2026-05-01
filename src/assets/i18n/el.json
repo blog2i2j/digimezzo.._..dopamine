@@ -362,5 +362,6 @@
     "small-size": "Small",
     "normal-size": "Normal",
     "large-size": "Large",
-    "xl-size": "Extra large"
+    "xl-size": "Extra large",
+    "show-refresh-notification-at-startup": "Show a refresh notification at startup"
 }

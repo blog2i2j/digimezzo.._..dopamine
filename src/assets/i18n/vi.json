@@ -362,5 +362,6 @@
     "small-size": "Nhỏ",
     "normal-size": "Trung bình",
     "large-size": "Lớn",
-    "xl-size": "Khổng lồ"
+    "xl-size": "Khổng lồ",
+    "show-refresh-notification-at-startup": "Show a refresh notification at startup"
 }

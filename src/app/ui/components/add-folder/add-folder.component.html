@@ -1,4 +1,8 @@
 <div class="add-folder-component" [ngClass]="{ inactive: indexingService.isIndexingCollection }">
+    <div class="add-folder-component__indexing-overlay" *ngIf="indexingService.isIndexingCollection">
+        <i class="las la-sync add-folder-component__indexing-icon rotation"></i>
+        <span class="add-folder-component__indexing-text">{{ 'refreshing' | translate }}</span>
+    </div>
     <div class="mb-3">
         <app-icon-text-button (click)="addFolderAsync()" icon="las la-plus">{{ 'add-folder' | translate }} </app-icon-text-button>
     </div>

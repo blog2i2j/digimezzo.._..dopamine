@@ -1,6 +1,28 @@
 .add-folder-component {
     display: flex;
     flex-direction: column;
+    position: relative;
+}
+
+.add-folder-component__indexing-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.add-folder-component__indexing-icon {
+    font-size: 28px;
+    color: var(--theme-accent-color);
+}
+
+.add-folder-component__indexing-text {
+    font-size: 14px;
+    color: var(--theme-accent-color);
 }
 
 .folder:hover {

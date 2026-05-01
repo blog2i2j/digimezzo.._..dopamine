@@ -924,4 +924,13 @@ export class Settings implements SettingsBase {
     public set richLyricsFontSize(v: number) {
         this.set('richLyricsFontSize', v);
     }
+
+    // showRefreshNotificationAtStartup
+    public get showRefreshNotificationAtStartup(): boolean {
+        return this.get<boolean>('showRefreshNotificationAtStartup');
+    }
+
+    public set showRefreshNotificationAtStartup(v: boolean) {
+        this.set('showRefreshNotificationAtStartup', v);
+    }
 }

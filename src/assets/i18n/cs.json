@@ -362,5 +362,6 @@
     "small-size": "Malé",
     "normal-size": "Běžné",
     "large-size": "Velké",
-    "xl-size": "Extra velké"
+    "xl-size": "Extra velké",
+    "show-refresh-notification-at-startup": "Show a refresh notification at startup"
 }

@@ -362,5 +362,6 @@
     "small-size": "Klein",
     "normal-size": "Normaal",
     "large-size": "Groot",
-    "xl-size": "Extra groot"
+    "xl-size": "Extra groot",
+    "show-refresh-notification-at-startup": "Vernieuwingsmelding bij opstarten weergeven"
 }

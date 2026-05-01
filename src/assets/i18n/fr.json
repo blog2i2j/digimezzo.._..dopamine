@@ -362,5 +362,6 @@
     "small-size": "Petite",
     "normal-size": "Normale",
     "large-size": "Grande",
-    "xl-size": "Très grande"
+    "xl-size": "Très grande",
+    "show-refresh-notification-at-startup": "Afficher une notification de rafraîchissement au démarrage"
 }

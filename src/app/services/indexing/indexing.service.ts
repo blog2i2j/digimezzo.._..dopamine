@@ -59,27 +59,37 @@ export class IndexingService implements OnDestroy {
             PromiseUtils.noAwait(this.showNotification(message));
         });
 
-        this.ipcProxy.onIndexingWorkerExit$.subscribe(async () => {
-            await this.albumArtworkIndexer.indexAlbumArtworkAsync();
-            this.isIndexingCollection = false;
-            this.indexingFinished.next();
+        this.ipcProxy.onIndexingWorkerExit$.subscribe(() => {
+            void this.handleOnIndexingWorkerExitAsync();
         });
     }
 
-    public indexCollectionIfOutdated(): void {
+    private async handleOnIndexingWorkerExitAsync(): Promise<void> {
+        await this.albumArtworkIndexer.indexAlbumArtworkAsync();
+        this.isIndexingCollection = false;
+        this.indexingFinished.next();
+    }
+
+    public async indexCollectionIfOutdatedAsync(): Promise<void> {
+        if (this.settings.showRefreshNotificationAtStartup) {
+            await this.notificationService.refreshingAsync();
+            await this.scheduler.sleepAsync(1000); // Wait a bit to ensure user sees a refreshing notification
+        }
         this.indexCollection('outdated');
     }
 
     public async indexCollectionAlwaysAsync(): Promise<void> {
         await this.notificationService.refreshingAsync();
-        // Wait a bit to ensure user sees a refreshing notification
-        await this.scheduler.sleepAsync(1000);
+        await this.scheduler.sleepAsync(1000); // Wait a bit to ensure user sees a refreshing notification
         this.indexCollection('always');
     }
 
     public async indexCollectionIfOptionsHaveChangedAsync(): Promise<void> {
         if (this.foldersHaveChanged) {
             this.logger.info('Folders have changed. Indexing collection.', 'IndexingService', 'indexCollectionIfOptionsHaveChanged');
+
+            await this.notificationService.refreshingAsync();
+            await this.scheduler.sleepAsync(1000); // Wait a bit to ensure user sees a refreshing notification
             this.indexCollection('always');
         } else if (this.albumGroupingHasChanged) {
             this.logger.info(
@@ -188,7 +198,6 @@ export class IndexingService implements OnDestroy {
     private indexCollection(task: string): void {
         if (this.isIndexingCollection) {
             this.logger.info('Already indexing.', 'IndexingService', 'indexCollection');
-
             return;
         }
 

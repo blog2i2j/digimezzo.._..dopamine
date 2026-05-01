@@ -362,5 +362,6 @@
     "small-size": "Маленький",
     "normal-size": "Обычный",
     "large-size": "Большой",
-    "xl-size": "Очень большой"
+    "xl-size": "Очень большой",
+    "show-refresh-notification-at-startup": "Show a refresh notification at startup"
 }
