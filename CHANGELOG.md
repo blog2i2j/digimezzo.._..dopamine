@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Saving a rating to an MP3 file could create an ID3v1 tag, causing genres to be stored and displayed as their numeric ID3v1 code (e.g. "Eurodance" becoming "54")
 - It is not possible to edit songs from the Songs screen
 - There is no scroll bar in the smart playlist editor
 - Loop one does not work correctly when using gapless or crossfading playback
