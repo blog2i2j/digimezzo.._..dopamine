@@ -8,6 +8,9 @@
     <button mat-menu-item (click)="goToManageCollectionAsync()">
         <i class="las la-database mr-1 font-16px"></i> {{ 'manage-collection' | translate }}
     </button>
+    <button mat-menu-item (click)="refreshCollectionNow()">
+        <i class="las la-sync-alt mr-1 font-16px"></i> {{ 'refresh-now' | translate }}
+    </button>
     <mat-divider></mat-divider>
     <button mat-menu-item (click)="goToSettingsAsync()"><i class="las la-cog mr-1 font-16px"></i> {{ 'settings' | translate }}</button>
     <button mat-menu-item (click)="goToInformationAsync()">
