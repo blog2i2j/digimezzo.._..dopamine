@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - There is no scroll bar in the smart playlist editor
 - Loop one does not work correctly when using gapless or crossfading playback
 - When exiting Dopamine, the Discord status doesn't disappear.
+- It's not always clear when Dopamine is refreshing the collection
 
 ## [3.0.4] - 2026-04-08
 
