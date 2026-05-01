@@ -5,6 +5,7 @@ import {
     Id3v2FrameIdentifiers,
     Id3v2PopularimeterFrame,
     Id3v2Tag,
+    MpegAudioFileSettings,
     PictureType,
     TagTypes,
 } from 'node-taglib-sharp';
@@ -49,7 +50,7 @@ export class TagLibFileMetadata implements IFileMetadata {
     }
 
     public save(): void {
-        const tagLibFile = File.createFromPath(this.path);
+        const tagLibFile = this.createFileWithoutDefaultId3v1ForMp3();
 
         if (this.ratingHasChanged) {
             this.writeRatingToFile(tagLibFile, this.rating);
@@ -90,6 +91,23 @@ export class TagLibFileMetadata implements IFileMetadata {
 
         tagLibFile.save();
         tagLibFile.dispose();
+    }
+
+    private createFileWithoutDefaultId3v1ForMp3(): File {
+        if (!this.path.toLowerCase().endsWith('.mp3')) {
+            return File.createFromPath(this.path);
+        }
+
+        // MPEG defaults include Id3v1 + Id3v2. For rating updates we only need Id3v2 (POPM),
+        // and creating a fresh Id3v1 tag can cause genre names to round-trip as numeric IDs.
+        const originalDefaultTagTypes: TagTypes = MpegAudioFileSettings.defaultTagTypes;
+        MpegAudioFileSettings.defaultTagTypes = TagTypes.Id3v2;
+
+        try {
+            return File.createFromPath(this.path);
+        } finally {
+            MpegAudioFileSettings.defaultTagTypes = originalDefaultTagTypes;
+        }
     }
 
     // eslint-disable-next-line @typescript-eslint/require-await
