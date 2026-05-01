@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated the German translation
 - Updated the Hebrew translation
 - Updated the Russian translation
+- Updated the Vietnamese translation
 
 ### Fixed
 
