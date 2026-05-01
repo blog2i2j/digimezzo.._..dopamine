@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added an Adwaita theme, because GNU/Linux deserves some love.
 - Added Windows taskbar media controls accessible by hovering over the app icon in the taskbar
+- Added a "Refresh now" button to the main menu
 
 ### Changed
 
