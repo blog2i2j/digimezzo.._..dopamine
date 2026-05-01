@@ -15,6 +15,7 @@ import { IFileMetadata } from '../../common/metadata/i-file-metadata';
 import { Track } from '../../data/entities/track';
 import { TrackFiller } from './track-filler';
 import { PlaybackService } from '../playback/playback.service';
+import { SchedulerBase } from '../../common/scheduling/scheduler.base';
 
 @Injectable()
 export class IndexingService implements OnDestroy {
@@ -31,6 +32,7 @@ export class IndexingService implements OnDestroy {
         private trackRepository: TrackRepositoryBase,
         private trackFiller: TrackFiller,
         private desktop: DesktopBase,
+        private scheduler: SchedulerBase,
         private settings: SettingsBase,
         private ipcProxy: IpcProxyBase,
         private logger: Logger,
@@ -68,7 +70,10 @@ export class IndexingService implements OnDestroy {
         this.indexCollection('outdated');
     }
 
-    public indexCollectionAlways(): void {
+    public async indexCollectionAlwaysAsync(): Promise<void> {
+        await this.notificationService.refreshingAsync();
+        // Wait a bit to ensure user sees a refreshing notification
+        await this.scheduler.sleepAsync(1000);
         this.indexCollection('always');
     }
 
@@ -147,7 +152,7 @@ export class IndexingService implements OnDestroy {
     private async showNotification(message: IIndexingMessage): Promise<void> {
         switch (message.type) {
             case 'refreshing': {
-                await this.notificationService.refreshing();
+                await this.notificationService.refreshingAsync();
                 break;
             }
             case 'addingTracks': {

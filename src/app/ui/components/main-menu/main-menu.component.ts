@@ -27,8 +27,8 @@ export class MainMenuComponent {
         await this.navigationService.navigateToManageCollectionAsync();
     }
 
-    public refreshCollectionNow(): void {
-        this.indexingService.indexCollectionAlways();
+    public async refreshCollectionNowAsync(): Promise<void> {
+        await this.indexingService.indexCollectionAlwaysAsync();
     }
 
     public async goToSettingsAsync(): Promise<void> {

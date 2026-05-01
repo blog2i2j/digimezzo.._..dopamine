@@ -36,14 +36,14 @@ describe('ManageRefreshComponent', () => {
         });
     });
     describe('refreshNowAsync', () => {
-        it('should index the collection', () => {
+        it('should index the collection', async () => {
             // Arrange
 
             // Act
-            component.refreshNow();
+            await component.refreshNowAsync();
 
             // Assert
-            indexingServiceMock.verify((x) => x.indexCollectionAlways(), Times.exactly(1));
+            indexingServiceMock.verify((x) => x.indexCollectionAlwaysAsync(), Times.exactly(1));
         });
     });
 });

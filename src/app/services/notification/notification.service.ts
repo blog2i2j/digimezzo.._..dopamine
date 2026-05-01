@@ -33,7 +33,7 @@ export class NotificationService implements NotificationServiceBase {
         await this.showSelfClosingNotificationAsync('las la-folder', message, false);
     }
 
-    public async refreshing(): Promise<void> {
+    public async refreshingAsync(): Promise<void> {
         const message: string = await this.translatorService.getAsync('refreshing');
         this.showDismissibleNotification('las la-sync', message, true, false);
     }

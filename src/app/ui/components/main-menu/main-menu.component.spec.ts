@@ -83,14 +83,14 @@ describe('MainMenuComponent', () => {
     });
 
     describe('refreshCollectionNow', () => {
-        it('should refresh the collection', () => {
+        it('should refresh the collection', async () => {
             // Arrange
 
             // Act
-            component.refreshCollectionNow();
+            await component.refreshCollectionNowAsync();
 
             // Assert
-            indexingServiceMock.verify((x) => x.indexCollectionAlways(), Times.exactly(1));
+            indexingServiceMock.verify((x) => x.indexCollectionAlwaysAsync(), Times.exactly(1));
         });
     });
 

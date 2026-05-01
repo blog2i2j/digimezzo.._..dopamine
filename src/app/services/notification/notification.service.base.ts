@@ -7,7 +7,7 @@ export abstract class NotificationServiceBase {
     public abstract readonly notificationData: NotificationData | undefined;
     public abstract readonly hasNotificationData: boolean;
     public abstract folderAlreadyAddedAsync(): Promise<void>;
-    public abstract refreshing(): Promise<void>;
+    public abstract refreshingAsync(): Promise<void>;
     public abstract removingTracksAsync(): Promise<void>;
     public abstract updatingTracksAsync(): Promise<void>;
     public abstract addedTracksAsync(numberOfAddedTracks: number, percentageOfAddedTracks: number): Promise<void>;
